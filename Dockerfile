@@ -6,3 +6,7 @@ FROM kobotoolbox/enketo_express:1.69.1-jnm
 
 RUN npm install https://github.com/kobotoolbox/enketo-image-customization-widget.git
 RUN npm install https://github.com/kobotoolbox/enketo-literacy-test-widget.git
+
+# Avoid problems like like:
+#   Error: Cannot find module 'vex-dialog-enketo' from '/srv/src/enketo_express/public/js/src/module'
+RUN npm install
