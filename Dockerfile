@@ -1,4 +1,4 @@
-FROM kobotoolbox/enketo_express:1.70.3
+FROM kobotoolbox/enketo_express:1.72.1
 
 # `npm install` custom widgets here. Please note that widgets must also be
 # listed in config.json to be enabled; see
