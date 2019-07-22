@@ -1,4 +1,4 @@
-FROM kobotoolbox/enketo_express:1.77.0-jnm-grunt-workaround
+FROM kobotoolbox/enketo_express:1.77.1
 
 # `npm install` custom widgets here. Please note that widgets must also be
 # listed in config.json to be enabled; see
