@@ -1,4 +1,4 @@
-FROM kobotoolbox/enketo_express:1.86.1
+FROM kobotoolbox/enketo_express:1.86.2-jnm-docker-ie11
 
 # `npm install` custom widgets here. Please note that widgets must also be
 # listed in config.json to be enabled; see
