@@ -1,4 +1,4 @@
-FROM enketo/enketo-express:b624885
+FROM enketo/enketo-express:2.3.2
 
 # `npm install` custom widgets here. Please note that widgets must also be
 # listed in config.json to be enabled; see
