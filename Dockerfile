@@ -1,4 +1,4 @@
-FROM enketo/enketo-express:2.3.2
+FROM enketo/enketo-express:2.3.3
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
