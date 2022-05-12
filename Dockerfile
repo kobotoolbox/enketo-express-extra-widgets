@@ -6,13 +6,23 @@ FROM enketo/enketo-express:3.1.0
 # https://github.com/actions/checkout/issues/162#issuecomment-591198381
 RUN sed -i '/extraheader = AUTHORIZATION/d' .git/config
 
-# `npm install` custom widgets here. Please note that widgets must also be
-# listed in config.json to be enabled; see
-# https://github.com/kobotoolbox/enketo-express/blob/master/doc/custom-widgets.md
+# A skeleton configuration file that lists *all* custom *and* default widgets
+# must be present at build time! Any widget not listed here will not work, even
+# if it's listed in the run-time configuration file, which is completely
+# separate.
+# To check that this is working, inspect the contents of `js/build/widgets.js`
+# after `grunt` completes.
+COPY config-at-build-time.json config/config.json
 
-RUN npm install https://github.com/kobotoolbox/enketo-image-customization-widget.git
-RUN npm install https://github.com/kobotoolbox/enketo-literacy-test-widget.git
-
-# Avoid problems like like:
-#   Error: Cannot find module 'vex-dialog-enketo' from '/srv/src/enketo_express/public/js/src/module'
-RUN npm install
+# `npm install` by itself, with no widget, is necessary before any building
+# because the base image calls `npm prune --production`.
+# `npm install` custom widgets here according to
+# https://enketo.github.io/enketo-express/tutorial-34-custom-widgets.html.
+# Please note that widgets must also be listed in the run-time config.json to
+# be enabled.
+RUN npm install && \
+    npm install https://github.com/kobotoolbox/enketo-image-customization-widget.git && \
+    npm install https://github.com/kobotoolbox/enketo-literacy-test-widget.git && \
+    grunt && \
+    npm prune --production && \
+    rm config/config.json
