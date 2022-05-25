@@ -26,3 +26,7 @@ RUN npm install && \
     grunt && \
     npm prune --production && \
     rm config/config.json
+
+# Since we're building anyway, install our favicon in a simple way instead of
+# using a Docker volume
+COPY images/* public/images/
