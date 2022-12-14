@@ -1,4 +1,4 @@
-FROM kobotoolbox/enketo-express:5.0.0-nested-repeat-count-fix
+FROM kobotoolbox/enketo-express:5.0.0-nested-repeat-count-fix-retry
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
