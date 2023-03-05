@@ -23,7 +23,7 @@ COPY config-at-build-time.json config/config.json
 RUN npm install && \
     npm install https://github.com/kobotoolbox/enketo-image-customization-widget.git && \
     npm install https://github.com/kobotoolbox/enketo-literacy-test-widget.git && \
-    grunt && \
+    npx grunt && \
     npm prune --production && \
     rm config/config.json
 
