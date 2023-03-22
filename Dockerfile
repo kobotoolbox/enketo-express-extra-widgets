@@ -1,4 +1,4 @@
-FROM enketo/enketo-express:6.0.0
+FROM kobojohn/enketo-express:6.0.0-plus-949383ab-plus-exponential-backoff
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
