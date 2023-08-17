@@ -14,6 +14,13 @@ RUN sed -i '/extraheader = AUTHORIZATION/d' .git/config
 # after `grunt` completes.
 COPY config-at-build-time.json config/config.json
 
+# Add CSS so that `note` questions with `appearance` set to `kobo-disclaimer`
+# appear in a special footer on every page of the form. See
+# https://github.com/kobotoolbox/kpi/pull/4587
+# https://github.com/kobotoolbox/kobocat/pull/882
+COPY disclaimer-css.patch /tmp/
+RUN git apply /tmp/disclaimer-css.patch
+
 # `npm install` by itself, with no widget, is necessary before any building
 # because the base image calls `npm prune --production`.
 # `npm install` custom widgets here according to

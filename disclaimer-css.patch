@@ -1,0 +1,58 @@
+From 3de53f474cfe22a7f86302ed7d3e20e820a836ed Mon Sep 17 00:00:00 2001
+From: Anji Tong <anjitong@hotmail.com>
+Date: Fri, 9 Jun 2023 15:52:25 -0400
+Subject: [PATCH] Adds CSS to make appended disclaimer visible
+
+Adds new component `_disclaimer`. Imports component to themes.
+---
+ app/views/styles/component/_disclaimer.scss       | 11 +++++++++++
+ app/views/styles/theme-formhub/theme-formhub.scss |  1 +
+ app/views/styles/theme-grid/theme-grid.scss       |  1 +
+ app/views/styles/theme-kobo/theme-kobo.scss       |  1 +
+ 4 files changed, 14 insertions(+)
+ create mode 100644 app/views/styles/component/_disclaimer.scss
+
+diff --git a/app/views/styles/component/_disclaimer.scss b/app/views/styles/component/_disclaimer.scss
+new file mode 100644
+index 000000000..e921ed59a
+--- /dev/null
++++ b/app/views/styles/component/_disclaimer.scss
+@@ -0,0 +1,11 @@
++.or-appearance-kobo-disclaimer {
++    display: block !important;
++    margin-top: 12px !important;
++    margin-bottom: 6px !important;
++    padding: 16px 40px !important;
++    line-height: 1.5em !important;
++    border: 2px solid #02a7f7 !important;
++    border-radius: 5px !important;
++    background-color: #e4f4fe !important;
++    font-weight: strong !important;
++}
+diff --git a/app/views/styles/theme-formhub/theme-formhub.scss b/app/views/styles/theme-formhub/theme-formhub.scss
+index b4066ddf8..efabc3cf9 100644
+--- a/app/views/styles/theme-formhub/theme-formhub.scss
++++ b/app/views/styles/theme-formhub/theme-formhub.scss
+@@ -36,3 +36,4 @@
+ @import 'form_formhub';
+ @import '../component/form_header';
+ @import '../component/form_footer';
++@import '../component/disclaimer';
+diff --git a/app/views/styles/theme-grid/theme-grid.scss b/app/views/styles/theme-grid/theme-grid.scss
+index 82d83d01f..881943b47 100644
+--- a/app/views/styles/theme-grid/theme-grid.scss
++++ b/app/views/styles/theme-grid/theme-grid.scss
+@@ -37,3 +37,4 @@
+ @import 'form-grid';
+ @import '../component/form_header';
+ @import '../component/form_footer';
++@import '../component/disclaimer';
+diff --git a/app/views/styles/theme-kobo/theme-kobo.scss b/app/views/styles/theme-kobo/theme-kobo.scss
+index 66a6b7ba4..b2b626f76 100644
+--- a/app/views/styles/theme-kobo/theme-kobo.scss
++++ b/app/views/styles/theme-kobo/theme-kobo.scss
+@@ -36,3 +36,4 @@
+ @import '../theme-formhub/form_formhub';
+ @import '../component/form_header';
+ @import '../component/form_footer';
++@import '../component/disclaimer';
