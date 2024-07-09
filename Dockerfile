@@ -1,4 +1,16 @@
-FROM enketo/enketo-express:6.2.2
+FROM node:20.12.2-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    build-essential \
+    git \
+    ca-certificates \
+    chromium
+
+ENV ENKETO_SRC_DIR=/srv/src/enketo
+WORKDIR ${ENKETO_SRC_DIR}
+
+RUN git clone https://github.com/enketo/enketo ${ENKETO_SRC_DIR}
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
@@ -21,19 +33,21 @@ COPY config-at-build-time.json config/config.json
 COPY disclaimer-css.patch /tmp/
 RUN git apply /tmp/disclaimer-css.patch
 
-# `npm install` by itself, with no widget, is necessary before any building
-# because the base image calls `npm prune --production`.
-# `npm install` custom widgets here according to
-# https://enketo.github.io/enketo-express/tutorial-34-custom-widgets.html.
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
-RUN npm install && \
-    npm install https://github.com/kobotoolbox/enketo-image-customization-widget.git && \
-    npm install https://github.com/kobotoolbox/enketo-literacy-test-widget.git && \
-    npx grunt && \
-    npm prune --production && \
-    rm config/config.json
+RUN yarn install --frozen-lockfile \
+    && yarn cache clean \
+    # && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget.git -W \
+    # && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget.git -W \
+    && yarn workspace enketo-express run build \
+    && rm config/config.json
 
 # Since we're building anyway, install our favicon in a simple way instead of
 # using a Docker volume
 COPY images/* public/images/
+
+WORKDIR ${ENKETO_SRC_DIR}/packages/enketo-express
+
+EXPOSE 8005
+
+CMD ["yarn", "workspace", "enketo-express"]

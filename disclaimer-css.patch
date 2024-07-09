@@ -5,18 +5,18 @@ Subject: [PATCH] Adds CSS to make appended disclaimer visible
 
 Adds new component `_disclaimer`. Imports component to themes.
 ---
- app/views/styles/component/_disclaimer.scss       | 11 +++++++++++
- app/views/styles/theme-formhub/theme-formhub.scss |  1 +
- app/views/styles/theme-grid/theme-grid.scss       |  1 +
- app/views/styles/theme-kobo/theme-kobo.scss       |  1 +
+ packages/enketo-express/app/views/styles/component/_disclaimer.scss       | 11 +++++++++++
+ packages/enketo-express/app/views/styles/theme-formhub/theme-formhub.scss |  1 +
+ packages/enketo-express/app/views/styles/theme-grid/theme-grid.scss       |  1 +
+ packages/enketo-express/app/views/styles/theme-kobo/theme-kobo.scss       |  1 +
  4 files changed, 14 insertions(+)
  create mode 100644 app/views/styles/component/_disclaimer.scss
 
-diff --git a/app/views/styles/component/_disclaimer.scss b/app/views/styles/component/_disclaimer.scss
+diff --git a/packages/enketo-express/app/views/styles/component/_disclaimer.scss b/packages/enketo-express/app/views/styles/component/_disclaimer.scss
 new file mode 100644
 index 000000000..e921ed59a
 --- /dev/null
-+++ b/app/views/styles/component/_disclaimer.scss
++++ b/packages/enketo-express/app/views/styles/component/_disclaimer.scss
 @@ -0,0 +1,11 @@
 +.or-appearance-kobo-disclaimer {
 +    display: block !important;
@@ -29,28 +29,28 @@ index 000000000..e921ed59a
 +    background-color: #e4f4fe !important;
 +    font-weight: strong !important;
 +}
-diff --git a/app/views/styles/theme-formhub/theme-formhub.scss b/app/views/styles/theme-formhub/theme-formhub.scss
+diff --git a/packages/enketo-express/app/views/styles/theme-formhub/theme-formhub.scss b/packages/enketo-express/app/views/styles/theme-formhub/theme-formhub.scss
 index b4066ddf8..efabc3cf9 100644
---- a/app/views/styles/theme-formhub/theme-formhub.scss
-+++ b/app/views/styles/theme-formhub/theme-formhub.scss
+--- a/packages/enketo-express/app/views/styles/theme-formhub/theme-formhub.scss
++++ b/packages/enketo-express/app/views/styles/theme-formhub/theme-formhub.scss
 @@ -36,3 +36,4 @@
  @import 'form_formhub';
  @import '../component/form_header';
  @import '../component/form_footer';
 +@import '../component/disclaimer';
-diff --git a/app/views/styles/theme-grid/theme-grid.scss b/app/views/styles/theme-grid/theme-grid.scss
+diff --git a/packages/enketo-express/app/views/styles/theme-grid/theme-grid.scss b/packages/enketo-express/app/views/styles/theme-grid/theme-grid.scss
 index 82d83d01f..881943b47 100644
---- a/app/views/styles/theme-grid/theme-grid.scss
-+++ b/app/views/styles/theme-grid/theme-grid.scss
+--- a/packages/enketo-express/app/views/styles/theme-grid/theme-grid.scss
++++ b/packages/enketo-express/app/views/styles/theme-grid/theme-grid.scss
 @@ -37,3 +37,4 @@
  @import 'form-grid';
  @import '../component/form_header';
  @import '../component/form_footer';
 +@import '../component/disclaimer';
-diff --git a/app/views/styles/theme-kobo/theme-kobo.scss b/app/views/styles/theme-kobo/theme-kobo.scss
+diff --git a/packages/enketo-express/app/views/styles/theme-kobo/theme-kobo.scss b/packages/enketo-express/app/views/styles/theme-kobo/theme-kobo.scss
 index 66a6b7ba4..b2b626f76 100644
---- a/app/views/styles/theme-kobo/theme-kobo.scss
-+++ b/app/views/styles/theme-kobo/theme-kobo.scss
+--- a/packages/enketo-express/app/views/styles/theme-kobo/theme-kobo.scss
++++ b/packages/enketo-express/app/views/styles/theme-kobo/theme-kobo.scss
 @@ -36,3 +36,4 @@
  @import '../theme-formhub/form_formhub';
  @import '../component/form_header';
