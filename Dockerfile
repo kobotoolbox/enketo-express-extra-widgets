@@ -37,8 +37,8 @@ RUN git apply /tmp/disclaimer-css.patch
 # be enabled.
 RUN yarn install --frozen-lockfile \
     && yarn cache clean \
-    # && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget.git -W \
-    # && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget.git -W \
+    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget.git -W \
+    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget.git -W \
     && yarn workspace enketo-express run build \
     && rm config/config.json
 
