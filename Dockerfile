@@ -1,13 +1,13 @@
-FROM node:20.12.2-slim
+FROM enketo/enketo-express:7.3.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
     git \
-    ca-certificates \
-    chromium
+    ca-certificates && \
+    npm install -g yarn@1.22.22 --force
 
-ENV ENKETO_SRC_DIR=/srv/src/enketo
+ENV ENKETO_SRC_DIR=/srv/src/enketo/enketo
 WORKDIR ${ENKETO_SRC_DIR}
 
 RUN git clone https://github.com/enketo/enketo ${ENKETO_SRC_DIR}
@@ -36,10 +36,10 @@ RUN git apply /tmp/disclaimer-css.patch
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
 RUN yarn install --frozen-lockfile \
-    && yarn cache clean \
-    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget#15a1096e2e924cba81caedd69aa17c5920823e26 -W \
-    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget#8ee65b7ff74f6c2502c86ecd0a1bb8ab3f9670a6 -W \
+    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget#cd36c2c050e521b9c8a9f7c2f00f7c7c0bc3ec67 -W \
+    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget#b89f5cf8e03df5a33802d19a03807216c1c1d328 -W \
     && yarn workspace enketo-express run build \
+    && yarn cache clean \
     && rm config/config.json
 
 # Since we're building anyway, install our favicon in a simple way instead of
