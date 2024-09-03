@@ -1,4 +1,6 @@
-FROM enketo/enketo-express:6.2.2
+# 6.2.2-GA4 base image is built from jnm fork, i.e.
+# https://github.com/enketo/enketo-express/compare/6.2.2...jnm:enketo-express:6.2.2-GA4?expand=1
+FROM kobotoolbox/enketo-express:6.2.2-GA4
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
