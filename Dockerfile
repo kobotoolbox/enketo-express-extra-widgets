@@ -1,16 +1,9 @@
 FROM enketo/enketo-express:7.3.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    build-essential \
-    git \
     ca-certificates && \
-    npm install -g yarn@1.22.22 --force
-
-ENV ENKETO_SRC_DIR=/srv/src/enketo/enketo
-WORKDIR ${ENKETO_SRC_DIR}
-
-RUN git clone https://github.com/enketo/enketo ${ENKETO_SRC_DIR}
+    apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # GitHub Actions adds an authentication header to the Git configuration,
 # which prevents us from installing Node modules in *public* GitHub
@@ -24,7 +17,7 @@ RUN sed -i '/extraheader = AUTHORIZATION/d' .git/config
 # separate.
 # To check that this is working, inspect the contents of `js/build/widgets.js`
 # after `grunt` completes.
-COPY config-at-build-time.json config/config.json
+COPY config-at-build-time.json packages/enketo-express/config/config.json
 
 # Add CSS so that `note` questions with `appearance` set to `kobo-disclaimer`
 # appear in a special footer on every page of the form. See
@@ -35,19 +28,13 @@ RUN git apply /tmp/disclaimer-css.patch
 
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
-RUN yarn install --frozen-lockfile \
-    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-image-customization-widget#cd36c2c050e521b9c8a9f7c2f00f7c7c0bc3ec67 -W \
-    && yarn workspace enketo-express add https://github.com/kobotoolbox/enketo-literacy-test-widget#b89f5cf8e03df5a33802d19a03807216c1c1d328 -W \
+RUN yarn workspace enketo-express add \
+    https://github.com/kobotoolbox/enketo-image-customization-widget#cd36c2c050e521b9c8a9f7c2f00f7c7c0bc3ec67 \
+    https://github.com/kobotoolbox/enketo-literacy-test-widget#b89f5cf8e03df5a33802d19a03807216c1c1d328 \
     && yarn workspace enketo-express run build \
     && yarn cache clean \
-    && rm config/config.json
+    && rm packages/enketo-express/config/config.json
 
 # Since we're building anyway, install our favicon in a simple way instead of
 # using a Docker volume
-COPY images/* public/images/
-
-WORKDIR ${ENKETO_SRC_DIR}/packages/enketo-express
-
-EXPOSE 8005
-
-CMD ["yarn", "workspace", "enketo-express"]
+COPY images/* packages/enketo-express/public/images/
