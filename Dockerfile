@@ -1,4 +1,4 @@
-FROM enketo/enketo-express:7.3.1
+FROM enketo/enketo-express:7.5.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && \
@@ -29,8 +29,8 @@ RUN git apply /tmp/disclaimer-css.patch
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
 RUN yarn workspace enketo-express add \
-    https://github.com/kobotoolbox/enketo-image-customization-widget#cd36c2c050e521b9c8a9f7c2f00f7c7c0bc3ec67 \
-    https://github.com/kobotoolbox/enketo-literacy-test-widget#b89f5cf8e03df5a33802d19a03807216c1c1d328 \
+    https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d \
+    https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981 \
     && yarn workspace enketo-express run build \
     && yarn cache clean \
     && rm packages/enketo-express/config/config.json
