@@ -28,7 +28,11 @@ RUN git apply /tmp/disclaimer-css.patch
 
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
+# ATTENTION: It seems bonkers to install `proxy-agent` here, but without it,
+# the `add` operation fails with
+#     Invariant Violation: expected workspace package to exist for "proxy-agent"
 RUN yarn workspace enketo-express add \
+    'proxy-agent@^6.5.0' \
     https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d \
     https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981 \
     && yarn workspace enketo-express run build \
