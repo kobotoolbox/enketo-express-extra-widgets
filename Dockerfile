@@ -1,4 +1,4 @@
-FROM kobotoolbox/enketo-express:main-67630aea
+FROM kobotoolbox/enketo-express:main-667282f0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && \
