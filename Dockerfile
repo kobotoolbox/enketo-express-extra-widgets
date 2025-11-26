@@ -35,6 +35,8 @@ RUN yarn workspace enketo-express add \
     'proxy-agent@^6.5.0' \
     https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d \
     https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981 \
+    && yarn install \
+    && yarn workspace enketo-core install \
     && yarn workspace enketo-express run build \
     && yarn cache clean \
     && rm packages/enketo-express/config/config.json
