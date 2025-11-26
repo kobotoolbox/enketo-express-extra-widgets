@@ -68,7 +68,7 @@ jobs:
       - name: Deploy to ${{ matrix.environment }}
         run: |
           helm -n kobo-dev upgrade ${{ matrix.environment }} \
-          oci://ghcr.io/kobotoolbox/ee-extra-widgets \
+          oci://ghcr.io/kobotoolbox/kobo \
           --atomic \
           --set-string enketo.image.tag=${GITHUB_SHA} \
           --set enketo.image.repository=$CI_REGISTRY_IMAGE \
