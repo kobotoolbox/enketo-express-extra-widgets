@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       base_image_tag:
-        description: 'Base enketo image tag)'
+        description: 'Base enketo image tag'
         required: true
         type: string
       short_sha:
