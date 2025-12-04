@@ -1,0 +1,99 @@
+name: Build Extra Widgets from Base Image
+
+on:
+  workflow_call:
+    inputs:
+      base_image_tag:
+        required: true
+        type: string
+      short_sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      base_image_tag:
+        description: 'Base enketo image tag)'
+        required: true
+        type: string
+      short_sha:
+        description: 'Short SHA from enketo repo'
+        required: true
+        type: string
+      branch:
+        description: 'Branch name'
+        required: true
+        type: string
+        default: 'main'
+
+env:
+  CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Update Dockerfile FROM line
+        run: |
+          BASE_TAG="${{ inputs.base_image_tag }}"
+          echo "Updating Dockerfile to use base image: ${BASE_TAG}"
+          sed -i "s|FROM .*|FROM ${BASE_TAG}|" Dockerfile
+          echo "Updated Dockerfile:"
+          cat Dockerfile
+
+      - name: Verify base image exists
+        run: |
+          echo "Verifying base image: ${{ inputs.base_image_tag }}"
+          docker manifest inspect ${{ inputs.base_image_tag }} || {
+            echo "ERROR: Base image does not exist or is not accessible"
+            exit 1
+          }
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          # Create tag in format: branch-shortsha (e.g., main-abc123)
+          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
+          echo "Building image with tags: ${TAG_NAME} and latest"
+          
+          # Pull cache if available
+          docker pull $CI_REGISTRY_IMAGE:${TAG_NAME} || true
+          docker pull $CI_REGISTRY_IMAGE:latest || true
+          
+          # Build with cache
+          docker build \
+            --cache-from $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --cache-from $CI_REGISTRY_IMAGE:latest \
+            --tag $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --tag $CI_REGISTRY_IMAGE:latest \
+            .
+          
+          # Push both tags
+          docker push $CI_REGISTRY_IMAGE:${TAG_NAME}
+          docker push $CI_REGISTRY_IMAGE:latest
+          
+          echo "Successfully pushed images:"
+          echo "   - $CI_REGISTRY_IMAGE:${TAG_NAME}"
+          echo "   - $CI_REGISTRY_IMAGE:latest"
+
+      - name: Output image details
+        run: |
+          echo "Build complete!"
+          echo "Base image: ${{ inputs.base_image_tag }}"
+          echo "Enketo commit: ${{ inputs.short_sha }}"
+          echo "Branch: ${{ inputs.branch }}"
+          echo "Image tag: ${{ inputs.branch }}-${{ inputs.short_sha }}"

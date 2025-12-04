@@ -1,9 +1,6 @@
 name: Non-prod releases
 
 on:
-  push:
-    branches:
-      - 'cicd'
   workflow_dispatch:
 
 jobs:
