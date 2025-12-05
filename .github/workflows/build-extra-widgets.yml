@@ -1,8 +1,6 @@
 name: Build Extra Widgets from Base Image
 
 on:
-  push:
-    
   workflow_call:
     inputs:
       base_image_tag:
@@ -32,13 +30,17 @@ on:
 
 env:
   CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
-
+  DEVOPS_REPO: kobotoolbox/devops
+  DEVOPS_BRANCH: instance/kf-main
+  VALUES_FILE_PATH: helm/us-east-1/staging-main.yaml  
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.image-info.outputs.tag }}      
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -91,6 +93,12 @@ jobs:
           echo "   - $CI_REGISTRY_IMAGE:${TAG_NAME}"
           echo "   - $CI_REGISTRY_IMAGE:latest"
 
+      - name: Store image info
+        id: image-info
+        run: |
+          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
+          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+
       - name: Output image details
         run: |
           echo "Build complete!"
@@ -98,3 +106,81 @@ jobs:
           echo "Enketo commit: ${{ inputs.short_sha }}"
           echo "Branch: ${{ inputs.branch }}"
           echo "Image tag: ${{ inputs.branch }}-${{ inputs.short_sha }}"
+
+  update-deployment-config:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: "devops"
+
+      - name: Checkout devops repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DEVOPS_REPO }}
+          ref: instance/kf-main
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install yq (YAML processor)
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update enketo image tag in values file
+        run: |
+          if [ ! -f "${{ env.VALUES_FILE_PATH }}" ]; then
+            echo "❌ Values file not found: ${{ env.VALUES_FILE_PATH }}"
+            exit 1
+          fi
+
+          echo "Current enketo config:"
+          yq eval '.enketo.image' ${{ env.VALUES_FILE_PATH }}
+
+          echo ""
+          echo "Updating enketo image tag to: ${{ needs.build.outputs.image_tag }}"
+
+          # Update the enketo image tag
+          yq eval '.enketo.image.tag = "${{ needs.build.outputs.image_tag }}"' -i "${{ env.VALUES_FILE_PATH }}"
+
+          echo ""
+          echo "✅ Updated enketo config:"
+          yq eval '.enketo.image' ${{ env.VALUES_FILE_PATH }}
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add ${{ env.VALUES_FILE_PATH }}
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit (tag already up to date)"
+          else
+            git commit -m "Deploy enketo ${{ needs.build.outputs.image_tag }}
+
+          Automated deployment update
+
+          Details:
+          - Image: ${{ env.CI_REGISTRY_IMAGE }}:${{ needs.build.outputs.image_tag }}
+          - Base image: ${{ inputs.base_image_tag }}
+          - Triggered by: ${{ github.repository }}@${{ github.sha }}
+          - Actor: ${{ github.actor }}"
+
+            git push origin {{ env.DEVOPS_BRANCH }}
+
+            echo "Pushed changes to ${{ env.DEVOPS_BRANCH }} branch"
+          fi
+
+      - name: Deployment ready
+        run: |
+          echo "Configuration updated!"
+          echo ""
+          echo "Deployment details:"
+          echo "   File: ${{ env.VALUES_FILE_PATH }}"
+          echo "   Image: ${{ env.CI_REGISTRY_IMAGE }}:${{ needs.build.outputs.image_tag }}"
