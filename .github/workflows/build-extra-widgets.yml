@@ -31,7 +31,7 @@ on:
 env:
   CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
   DEVOPS_REPO: kobotoolbox/devops
-  DEVOPS_BRANCH: instance/kf-main
+  DEVOPS_BRANCH: instance/kfmain
   VALUES_FILE_PATH: helm/us-east-1/staging-main.yaml  
 jobs:
   build:
