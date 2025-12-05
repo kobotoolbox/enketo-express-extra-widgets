@@ -1,0 +1,187 @@
+name: Build Extra Widgets from enketo/enketo and update tag in devops repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_image_tag:
+        description: 'Base enketo image tag'
+        required: true
+        type: string
+      short_sha:
+        description: 'Short SHA from enketo repo'
+        required: true
+        type: string
+      branch:
+        description: 'Branch name'
+        required: true
+        type: string
+        default: 'main'    
+  workflow_call:
+    inputs:
+      base_image_tag:
+        required: true
+        type: string
+      short_sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+
+env:
+  CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
+  DEVOPS_REPO: kobotoolbox/devops
+  DEVOPS_BRANCH: instance/kfmain
+  VALUES_FILE_PATH: helm/us-east-1/staging-main.yaml  
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.image-info.outputs.tag }}      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Update Dockerfile FROM line
+        run: |
+          BASE_TAG="${{ inputs.base_image_tag }}"
+          echo "Updating Dockerfile to use base image: ${BASE_TAG}"
+          sed -i "s|FROM .*|FROM ${BASE_TAG}|" Dockerfile
+          echo "Updated Dockerfile:"
+          cat Dockerfile
+
+      - name: Verify base image exists
+        run: |
+          echo "Verifying base image: ${{ inputs.base_image_tag }}"
+          docker manifest inspect ${{ inputs.base_image_tag }} || {
+            echo "ERROR: Base image does not exist or is not accessible"
+            exit 1
+          }
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          # Create tag in format: branch-shortsha
+          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
+          echo "Building image with tags: ${TAG_NAME} and latest"
+          
+          # Pull cache if available
+          docker pull $CI_REGISTRY_IMAGE:${TAG_NAME} || true
+          docker pull $CI_REGISTRY_IMAGE:latest || true
+          
+          # Build with cache
+          docker build \
+            --cache-from $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --cache-from $CI_REGISTRY_IMAGE:latest \
+            --tag $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --tag $CI_REGISTRY_IMAGE:latest \
+            .
+          
+          docker push $CI_REGISTRY_IMAGE:${TAG_NAME}
+          docker push $CI_REGISTRY_IMAGE:latest
+          
+          echo "Successfully pushed images:"
+          echo "   - $CI_REGISTRY_IMAGE:${TAG_NAME}"
+          echo "   - $CI_REGISTRY_IMAGE:latest"
+
+      - name: Store image info
+        id: image-info
+        run: |
+          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
+          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Output image details
+        run: |
+          echo "Build complete!"
+          echo "Base image: ${{ inputs.base_image_tag }}"
+          echo "Enketo commit: ${{ inputs.short_sha }}"
+          echo "Branch: ${{ inputs.branch }}"
+          echo "Image tag: ${{ inputs.branch }}-${{ inputs.short_sha }}"
+
+  update-deployment-config:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: "devops"
+
+      - name: Checkout devops repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DEVOPS_REPO }}
+          ref: ${{ env.DEVOPS_BRANCH }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install yq (YAML processor)
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update enketo image tag in values file
+        run: |
+          if [ ! -f "${{ env.VALUES_FILE_PATH }}" ]; then
+            echo "❌ Values file not found: ${{ env.VALUES_FILE_PATH }}"
+            exit 1
+          fi
+
+          echo "Current enketo config:"
+          yq eval '.enketo.image' ${{ env.VALUES_FILE_PATH }}
+
+          echo ""
+          echo "Updating enketo image tag to: ${{ needs.build.outputs.image_tag }}"
+
+          # Update the enketo image tag
+          yq eval '.enketo.image.tag = "${{ needs.build.outputs.image_tag }}"' -i "${{ env.VALUES_FILE_PATH }}"
+
+          echo ""
+          echo "✅ Updated enketo config:"
+          yq eval '.enketo.image' ${{ env.VALUES_FILE_PATH }}
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add ${{ env.VALUES_FILE_PATH }}
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit (tag already up to date)"
+          else
+            git commit -m "Deploy enketo ${{ needs.build.outputs.image_tag }}
+
+          Automated deployment update
+
+          Details:
+          - Image: ${{ env.CI_REGISTRY_IMAGE }}:${{ needs.build.outputs.image_tag }}
+          - Base image: ${{ inputs.base_image_tag }}
+          - Triggered by: ${{ github.repository }}@${{ github.sha }}
+          - Actor: ${{ github.actor }}"
+
+            git push origin ${{ env.DEVOPS_BRANCH }}
+
+            echo "Pushed changes to ${{ env.DEVOPS_BRANCH }} branch"
+          fi
+
+      - name: Deployment ready
+        run: |
+          echo "Configuration updated!"
+          echo ""
+          echo "Deployment details:"
+          echo "   File: ${{ env.VALUES_FILE_PATH }}"
+          echo "   Image: ${{ env.CI_REGISTRY_IMAGE }}:${{ needs.build.outputs.image_tag }}"
