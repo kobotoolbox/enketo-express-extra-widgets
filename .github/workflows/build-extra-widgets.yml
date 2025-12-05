@@ -1,6 +1,7 @@
 name: Build Extra Widgets from Base Image
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       base_image_tag:
