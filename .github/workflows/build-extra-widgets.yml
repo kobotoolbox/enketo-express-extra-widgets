@@ -1,4 +1,4 @@
-name: Build Extra Widgets from Base Image
+name: Build Extra Widgets from enketo/enketo and update tag in devops repo
 
 on:
   push:
