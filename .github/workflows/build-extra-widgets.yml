@@ -1,7 +1,6 @@
 name: Build Extra Widgets from enketo/enketo and update tag in devops repo
 
 on:
-  push:
   workflow_dispatch:
     inputs:
       base_image_tag:
@@ -34,6 +33,7 @@ env:
   DEVOPS_REPO: kobotoolbox/devops
   DEVOPS_BRANCH: instance/kfmain
   VALUES_FILE_PATH: helm/us-east-1/staging-main.yaml  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -125,7 +125,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.DEVOPS_REPO }}
-          ref: instance/kf-main
+          ref: ${{ env.DEVOPS_BRANCH }}
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Install yq (YAML processor)
@@ -173,7 +173,7 @@ jobs:
           - Triggered by: ${{ github.repository }}@${{ github.sha }}
           - Actor: ${{ github.actor }}"
 
-            git push origin {{ env.DEVOPS_BRANCH }}
+            git push origin ${{ env.DEVOPS_BRANCH }}
 
             echo "Pushed changes to ${{ env.DEVOPS_BRANCH }} branch"
           fi
