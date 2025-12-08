@@ -15,7 +15,7 @@ on:
         description: 'Branch name'
         required: true
         type: string
-        default: 'cicd'    
+        default: 'main'    
   workflow_call:
     inputs:
       base_image_tag:
@@ -81,7 +81,7 @@ jobs:
             
           git diff --staged --quiet && echo "No changes" || {
             git commit -m "Update base image to ${{ inputs.base_image_tag }}"
-            git push origin cicd
+            git push origin main
             echo " Pushed Dockerfile changes"
             }
       - name: Log in to GitHub Container Registry
