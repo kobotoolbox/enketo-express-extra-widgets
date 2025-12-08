@@ -16,17 +16,17 @@ on:
         required: true
         type: string
         default: 'main'    
-  workflow_call:
-    inputs:
-      base_image_tag:
-        required: true
-        type: string
-      short_sha:
-        required: true
-        type: string
-      branch:
-        required: true
-        type: string
+  #workflow_call:
+    #inputs:
+      #base_image_tag:
+        #required: true
+        #type: string
+      #short_sha:
+        #required: true
+        #type: string
+      #branch:
+        #required: true
+        #type: string
 
 env:
   CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
