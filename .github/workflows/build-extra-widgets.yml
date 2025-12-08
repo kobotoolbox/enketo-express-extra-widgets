@@ -39,13 +39,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     outputs:
       image_tag: ${{ steps.image-info.outputs.tag }}      
     steps:
-      - name: Checkout code
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: "enketo-express-extra-widgets"        
+      - name: Checkout ee-extra-widgets
         uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Update Dockerfile FROM line
         run: |
@@ -62,7 +72,18 @@ jobs:
             echo "ERROR: Base image does not exist or is not accessible"
             exit 1
           }
-
+      - name: Commit Dockerfile changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+          git add Dockerfile
+            
+          git diff --staged --quiet && echo "No changes" || {
+            git commit -m "Update base image to ${{ inputs.base_image_tag }}"
+            git push origin main
+            echo " Pushed Dockerfile changes"
+            }
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
