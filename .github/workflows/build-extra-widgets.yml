@@ -27,7 +27,7 @@ jobs:
       contents: write
       packages: write
     outputs:
-      image_tag: ${{ steps.image-info.outputs.tag }}    
+      enketo_image_tag: ${{ steps.image-info.outputs.tag }}    
     steps:
       - name: Generate GitHub App Token
         id: app-token
@@ -136,11 +136,11 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           inputs: |
             {
-              "image_tag": "${{ needs.build.outputs.image_tag }}"
+              "enketo_image_tag": "${{ needs.build.outputs.enketo_image_tag }}"
             }
 
       - name: Deploy triggered
         run: |
           echo "### Deploy triggered" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag**: \`${{ needs.build.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: \`${{ needs.build.outputs.enketo_image_tag }}\`" >> $GITHUB_STEP_SUMMARY
           
