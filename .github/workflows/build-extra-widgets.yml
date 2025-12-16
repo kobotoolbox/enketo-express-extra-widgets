@@ -15,14 +15,10 @@ on:
         description: 'Branch name'
         required: true
         type: string
-        default: 'main'    
+        default: 'cicd'    
 
 env:
   CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
-  DEVOPS_REPO: kobotoolbox/devops
-  DEVOPS_BRANCH: instance/kfmain
-  STAGING_MAIN_FILE: helm/us-east-1/staging-main.yaml  
-  STAGING_NOBILL_FILE: helm/us-east-1/staging-nobill.yaml
 
 jobs:
   build:
@@ -74,7 +70,7 @@ jobs:
             
           git diff --staged --quiet && echo "No changes" || {
             git commit -m "Update base image to ${{ inputs.base_image_tag }}"
-            git push origin main
+            git push origin cicd
             echo " Pushed Dockerfile changes"
           }
       - name: Log in to GitHub Container Registry
