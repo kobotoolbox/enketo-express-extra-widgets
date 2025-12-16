@@ -28,7 +28,6 @@ jobs:
       packages: write
     outputs:
       image_tag: ${{ steps.image-info.outputs.tag }}    
-      app_token: ${{ steps.app-token.outputs.token }}  
     steps:
       - name: Generate GitHub App Token
         id: app-token
@@ -37,9 +36,7 @@ jobs:
           app-id: ${{ secrets.KOBO_BOT_APP_ID }}
           private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
           owner: kobotoolbox
-          repositories: |
-            enketo-express-extra-widgets
-            devops
+          repositories: enketo-express-extra-widgets
 
       - name: Checkout ee-extra-widgets
         uses: actions/checkout@v5
@@ -121,13 +118,22 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: devops
+
       - name: Trigger kfmain deploy build
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: deploy-kfmain.yml
           repo: kobotoolbox/devops
           ref: instance/kfmain
-          token: ${{ needs.build.outputs.app_token }}
+          token: ${{ steps.app-token.outputs.token }}
           inputs: |
             {
               "image_tag": "${{ needs.build.outputs.image_tag }}"
