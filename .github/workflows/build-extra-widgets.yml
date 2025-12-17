@@ -139,17 +139,6 @@ jobs:
               "enketo_image_tag": "${{ needs.build.outputs.enketo_image_tag }}"
             }
 
-  notify-success:
-    needs:
-      - build
-      - trigger-main-deploy
-    if: ${{ always() && needs.build.result == 'success' && needs.trigger-main-deploy.result == 'success' }}
-    uses: kobotoolbox/kpi/.github/workflows/zulip.yml@main
-    secrets: inherit
-    with:
-      topic: "EE-extra-widgets builds"
-      content: ":check: Successfully built EE-extra-widgets ${{ needs.build.outputs.enketo_image_tag }}"
-
   notify-failure:
     needs:
       - build
@@ -159,5 +148,6 @@ jobs:
     secrets: inherit
     with:
       topic: "EE-extra-widgets builds"
-      content: ":warning: @*devs*, EE-extra-widgets build[run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed"
+      stream: "Enketo"
+      content: ":warning: @*devs*, EE-extra-widgets build [run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed"
       
