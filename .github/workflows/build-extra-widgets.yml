@@ -139,8 +139,25 @@ jobs:
               "enketo_image_tag": "${{ needs.build.outputs.enketo_image_tag }}"
             }
 
-      - name: Deploy triggered
-        run: |
-          echo "### Deploy triggered" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag**: \`${{ needs.build.outputs.enketo_image_tag }}\`" >> $GITHUB_STEP_SUMMARY
-          
+  notify-success:
+    needs:
+      - build
+      - trigger-main-deploy
+    if: ${{ always() && needs.build.result == 'success' && needs.trigger-main-deploy.result == 'success' }}
+    uses: kobotoolbox/kpi/.github/workflows/zulip.yml@main
+    secrets: inherit
+    with:
+      topic: "EE-extra-widgets builds"
+      content: ":check: Successfully built EE-extra-widgets ${{ needs.build.outputs.enketo_image_tag }}"
+
+  notify-failure:
+    needs:
+      - build
+      - trigger-main-deploy
+    if: ${{ always() && (needs.build.result == 'failure' || needs.trigger-main-deploy.result == 'failure') }}
+    uses: kobotoolbox/kpi/.github/workflows/zulip.yml@main
+    secrets: inherit
+    with:
+      topic: "EE-extra-widgets builds"
+      content: ":warning: @*devs*, EE-extra-widgets build[run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed"
+      
