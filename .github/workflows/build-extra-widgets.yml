@@ -27,7 +27,10 @@ jobs:
       contents: write
       packages: write
     outputs:
-      enketo_image_tag: ${{ steps.image-info.outputs.tag }}    
+      enketo_image_tag: ${{ env.TAG_NAME }}
+    env:
+      TAG_NAME: ${{ format('{0}-{1}', inputs.branch, inputs.short_sha) }}
+      BASE_TAG: ${{ inputs.base_image_tag }}    
     steps:
       - name: Generate GitHub App Token
         id: app-token
@@ -39,22 +42,21 @@ jobs:
           repositories: enketo-express-extra-widgets
 
       - name: Checkout ee-extra-widgets
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Update Dockerfile FROM line
         run: |
-          BASE_TAG="${{ inputs.base_image_tag }}"
-          echo "Updating Dockerfile to use base image: ${BASE_TAG}"
-          sed -i "s|FROM .*|FROM ${BASE_TAG}|" Dockerfile
+          echo "Updating Dockerfile to use base image: ${{ env.BASE_TAG }}"
+          sed -i "s|FROM .*|FROM ${{ env.BASE_TAG }}|" Dockerfile
           echo "Updated Dockerfile:"
           cat Dockerfile
 
       - name: Verify base image exists
         run: |
-          echo "Verifying base image: ${{ inputs.base_image_tag }}"
-          docker manifest inspect ${{ inputs.base_image_tag }} || {
+          echo "Verifying base image: ${{ env.BASE_TAG }}"
+          docker manifest inspect ${{ env.BASE_TAG }} || {
             echo "ERROR: Base image does not exist or is not accessible"
             exit 1
           }
@@ -62,11 +64,11 @@ jobs:
         run: |
           git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
           git config user.email '${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
-            
+
           git add Dockerfile
-            
+
           git diff --staged --quiet && echo "No changes" || {
-            git commit -m "Update base image to ${{ inputs.base_image_tag }}"
+            git commit -m "Update base image to ${{ env.BASE_TAG }}"
             git push origin main
             echo " Pushed Dockerfile changes"
           }
@@ -79,40 +81,31 @@ jobs:
 
       - name: Build and push image
         run: |
-          # Create tag in format: branch-shortsha
-          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
-          echo "Building image with tags: ${TAG_NAME} and latest"
-          
+          echo "Building image with tags: ${{ env.TAG_NAME }} and latest"
+
           # Pull cache if available
-          docker pull $CI_REGISTRY_IMAGE:${TAG_NAME} || true
+          docker pull $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} || true
           docker pull $CI_REGISTRY_IMAGE:latest || true
-          
+
           # Build with cache
           docker build \
-            --cache-from $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --cache-from $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} \
             --cache-from $CI_REGISTRY_IMAGE:latest \
-            --tag $CI_REGISTRY_IMAGE:${TAG_NAME} \
+            --tag $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} \
             --tag $CI_REGISTRY_IMAGE:latest \
             .
-          
-          docker push $CI_REGISTRY_IMAGE:${TAG_NAME}
-          docker push $CI_REGISTRY_IMAGE:latest
-          
-          echo "Successfully pushed images:"
-          echo "   - $CI_REGISTRY_IMAGE:${TAG_NAME}"
-          echo "   - $CI_REGISTRY_IMAGE:latest"
 
-      - name: Store image info
-        id: image-info
-        run: |
-          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
-          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          docker push $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }}
+          docker push $CI_REGISTRY_IMAGE:latest
+
+          echo "Successfully pushed images:"
+          echo "   - $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }}"
+          echo "   - $CI_REGISTRY_IMAGE:latest"
 
       - name: Output image details
         run: |
-          TAG_NAME="${{ inputs.branch }}-${{ inputs.short_sha }}"
           echo "### Build complete!" >> $GITHUB_STEP_SUMMARY
-          echo "**Image**: \`${{ env.CI_REGISTRY_IMAGE }}:${TAG_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: \`${{ env.CI_REGISTRY_IMAGE }}:${{ env.TAG_NAME }}\`" >> $GITHUB_STEP_SUMMARY
 
   trigger-main-deploy:
     needs: build
