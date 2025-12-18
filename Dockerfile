@@ -1,4 +1,4 @@
-FROM enketo/enketo-express:7.6.0
+FROM ghcr.io/enketo/enketo:cicd
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && \

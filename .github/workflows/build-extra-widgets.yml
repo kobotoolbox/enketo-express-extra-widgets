@@ -1,0 +1,146 @@
+name: Build Extra Widgets from enketo/enketo and update tag in devops repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_image_tag:
+        description: 'Base enketo image tag'
+        required: true
+        type: string
+      short_sha:
+        description: 'Short SHA from enketo repo'
+        required: true
+        type: string
+      branch:
+        description: 'Branch name'
+        required: true
+        type: string
+        default: 'main'    
+
+env:
+  CI_REGISTRY_IMAGE: ghcr.io/kobotoolbox/ee-extra-widgets
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      enketo_image_tag: ${{ env.TAG_NAME }}
+    env:
+      TAG_NAME: ${{ format('{0}-{1}', inputs.branch, inputs.short_sha) }}
+      BASE_TAG: ${{ inputs.base_image_tag }}    
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: enketo-express-extra-widgets
+
+      - name: Checkout ee-extra-widgets
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Update Dockerfile FROM line
+        run: |
+          echo "Updating Dockerfile to use base image: $BASE_TAG"
+          sed -i "s|FROM .*|FROM $BASE_TAG|" Dockerfile
+          echo "Updated Dockerfile:"
+          cat Dockerfile
+
+      - name: Verify base image exists
+        run: |
+          echo "Verifying base image: $BASE_TAG"
+          docker manifest inspect $BASE_TAG || {
+            echo "ERROR: Base image does not exist or is not accessible"
+            exit 1
+          }
+      - name: Commit Dockerfile changes
+        run: |
+          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config user.email '${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+          git add Dockerfile
+
+          git diff --staged --quiet && echo "No changes" || {
+            git commit -m "Update base image to $BASE_TAG"
+            git push origin main
+            echo " Pushed Dockerfile changes"
+          }
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          echo "Building image with tags: $TAG_NAME and latest"
+
+          # Pull cache if available
+          docker pull $CI_REGISTRY_IMAGE:$TAG_NAME || true
+          docker pull $CI_REGISTRY_IMAGE:latest || true
+
+          # Build with cache
+          docker build \
+            --cache-from $CI_REGISTRY_IMAGE:$TAG_NAME \
+            --cache-from $CI_REGISTRY_IMAGE:latest \
+            --tag $CI_REGISTRY_IMAGE:$TAG_NAME \
+            --tag $CI_REGISTRY_IMAGE:latest \
+            .
+
+          docker push $CI_REGISTRY_IMAGE:$TAG_NAME
+          docker push $CI_REGISTRY_IMAGE:latest
+
+          echo "Successfully pushed images:"
+          echo "   - $CI_REGISTRY_IMAGE:$TAG_NAME"
+          echo "   - $CI_REGISTRY_IMAGE:latest"
+
+      - name: Output image details
+        run: |
+          echo "### Build complete!" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: \`$CI_REGISTRY_IMAGE:$TAG_NAME\`" >> $GITHUB_STEP_SUMMARY
+
+  trigger-main-deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.KOBO_BOT_APP_ID }}
+          private-key: ${{ secrets.KOBO_BOT_PRIVATE_KEY }}
+          owner: kobotoolbox
+          repositories: devops
+
+      - name: Trigger kfmain deploy build
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: deploy-kfmain.yml
+          repo: kobotoolbox/devops
+          ref: instance/kfmain
+          token: ${{ steps.app-token.outputs.token }}
+          inputs: |
+            {
+              "enketo_image_tag": "${{ needs.build.outputs.enketo_image_tag }}"
+            }
+
+  notify-failure:
+    needs:
+      - build
+      - trigger-main-deploy
+    if: ${{ always() && (needs.build.result == 'failure' || needs.trigger-main-deploy.result == 'failure') }}
+    uses: kobotoolbox/kpi/.github/workflows/zulip.yml@main
+    secrets: inherit
+    with:
+      topic: "EE-extra-widgets builds"
+      stream: "Enketo"
+      content: ":warning: @*devs*, EE-extra-widgets build [run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed"
+      
