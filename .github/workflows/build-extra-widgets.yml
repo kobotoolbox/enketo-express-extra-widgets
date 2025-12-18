@@ -48,15 +48,15 @@ jobs:
 
       - name: Update Dockerfile FROM line
         run: |
-          echo "Updating Dockerfile to use base image: ${{ env.BASE_TAG }}"
-          sed -i "s|FROM .*|FROM ${{ env.BASE_TAG }}|" Dockerfile
+          echo "Updating Dockerfile to use base image: $BASE_TAG"
+          sed -i "s|FROM .*|FROM $BASE_TAG|" Dockerfile
           echo "Updated Dockerfile:"
           cat Dockerfile
 
       - name: Verify base image exists
         run: |
-          echo "Verifying base image: ${{ env.BASE_TAG }}"
-          docker manifest inspect ${{ env.BASE_TAG }} || {
+          echo "Verifying base image: $BASE_TAG"
+          docker manifest inspect $BASE_TAG || {
             echo "ERROR: Base image does not exist or is not accessible"
             exit 1
           }
@@ -68,7 +68,7 @@ jobs:
           git add Dockerfile
 
           git diff --staged --quiet && echo "No changes" || {
-            git commit -m "Update base image to ${{ env.BASE_TAG }}"
+            git commit -m "Update base image to $BASE_TAG"
             git push origin main
             echo " Pushed Dockerfile changes"
           }
@@ -81,31 +81,31 @@ jobs:
 
       - name: Build and push image
         run: |
-          echo "Building image with tags: ${{ env.TAG_NAME }} and latest"
+          echo "Building image with tags: $TAG_NAME and latest"
 
           # Pull cache if available
-          docker pull $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} || true
+          docker pull $CI_REGISTRY_IMAGE:$TAG_NAME || true
           docker pull $CI_REGISTRY_IMAGE:latest || true
 
           # Build with cache
           docker build \
-            --cache-from $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} \
+            --cache-from $CI_REGISTRY_IMAGE:$TAG_NAME \
             --cache-from $CI_REGISTRY_IMAGE:latest \
-            --tag $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }} \
+            --tag $CI_REGISTRY_IMAGE:$TAG_NAME \
             --tag $CI_REGISTRY_IMAGE:latest \
             .
 
-          docker push $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }}
+          docker push $CI_REGISTRY_IMAGE:$TAG_NAME
           docker push $CI_REGISTRY_IMAGE:latest
 
           echo "Successfully pushed images:"
-          echo "   - $CI_REGISTRY_IMAGE:${{ env.TAG_NAME }}"
+          echo "   - $CI_REGISTRY_IMAGE:$TAG_NAME"
           echo "   - $CI_REGISTRY_IMAGE:latest"
 
       - name: Output image details
         run: |
           echo "### Build complete!" >> $GITHUB_STEP_SUMMARY
-          echo "**Image**: \`${{ env.CI_REGISTRY_IMAGE }}:${{ env.TAG_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: \`$CI_REGISTRY_IMAGE:$TAG_NAME\`" >> $GITHUB_STEP_SUMMARY
 
   trigger-main-deploy:
     needs: build
