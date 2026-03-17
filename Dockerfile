@@ -1,4 +1,4 @@
-FROM ghcr.io/enketo/enketo:main
+FROM ghcr.io/enketo/enketo:7.6.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && \
