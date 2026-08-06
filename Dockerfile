@@ -20,31 +20,24 @@ RUN git apply /tmp/disclaimer-css.patch
 
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
-# ATTENTION: It seems bonkers to install `proxy-agent` here, but without it,
-# the `add` operation fails with
-#     Invariant Violation: expected workspace package to exist for "proxy-agent"
-RUN yarn workspace enketo-express add \
-    'proxy-agent@^6.5.0' \
-    https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d \
-    https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981 \
+# ATTENTION: `yarn workspace enketo-express add <pkg>` (and plain `yarn add`)
+# triggers a long-standing Yarn Classic bug where the hoister crashes with
+#     Invariant Violation: expected workspace package to exist for "..."
+# (see https://github.com/yarnpkg/yarn/issues/7807). The workaround is to
+# skip the `add` command entirely: use `npm pkg set` to write the new
+# dependencies directly into enketo-express's package.json, then run a plain
+# `yarn install`, which does not hit the buggy code path.
+RUN npm pkg set --prefix packages/enketo-express \
+    'dependencies.enketo-image-customization-widget=https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d' \
+    'dependencies.enketo-literacy-test-widget=https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981' \
+    'dependencies.proxy-agent=^6.5.0' \
+    'dependencies.vite=^6.4.3' \
     && yarn install \
     && yarn workspace enketo-core install
 
-# Append custom widget paths to the base image's default-config.json so that
-# the grunt `widgets` task (which reads from default-config.json, NOT
-# config.json) includes them in the generated widgets.js and _widgets.scss.
-# This avoids maintaining a static copy of the full widget list, which would
-# silently drop any new widgets added upstream.
-RUN node -e " \
-  const fs = require('fs'); \
-  const p = 'packages/enketo-express/config/default-config.json'; \
-  const c = JSON.parse(fs.readFileSync(p, 'utf8')); \
-  c.widgets.push( \
-    '../../../node_modules/enketo-image-customization-widget/image-customization', \
-    '../../../node_modules/enketo-literacy-test-widget/literacywidget' \
-  ); \
-  fs.writeFileSync(p, JSON.stringify(c, null, 4) + '\n'); \
-"
+# See scripts/register-widgets.js for why this is needed.
+COPY scripts/register-widgets.js /tmp/
+RUN node /tmp/register-widgets.js
 
 # Safety net: the custom widgets pin enketo-core in their own package.json.
 # If yarn decides the base image's version doesn't satisfy that pin, it
