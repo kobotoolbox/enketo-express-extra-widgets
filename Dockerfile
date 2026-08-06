@@ -23,13 +23,15 @@ RUN git apply /tmp/disclaimer-css.patch
 # ATTENTION: `yarn workspace enketo-express add <pkg>` (and plain `yarn add`)
 # triggers a long-standing Yarn Classic bug where the hoister crashes with
 #     Invariant Violation: expected workspace package to exist for "..."
-# (see https://github.com/yarnpkg/yarn/issues/7807). The workaround, applied
-# by scripts/add-widget-dependencies.js, is to skip the `add` command
-# entirely and write the new dependencies directly into enketo-express's
-# package.json, then run a plain `yarn install`, which does not hit the
-# buggy code path.
-COPY scripts/add-widget-dependencies.js /tmp/
-RUN node /tmp/add-widget-dependencies.js \
+# (see https://github.com/yarnpkg/yarn/issues/7807). The workaround is to
+# skip the `add` command entirely: use `npm pkg set` to write the new
+# dependencies directly into enketo-express's package.json, then run a plain
+# `yarn install`, which does not hit the buggy code path.
+RUN npm pkg set --prefix packages/enketo-express \
+    'dependencies.enketo-image-customization-widget=https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d' \
+    'dependencies.enketo-literacy-test-widget=https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981' \
+    'dependencies.proxy-agent=^6.5.0' \
+    'dependencies.vite=^6.4.3' \
     && yarn install \
     && yarn workspace enketo-core install
 
