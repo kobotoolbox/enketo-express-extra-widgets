@@ -20,15 +20,25 @@ RUN git apply /tmp/disclaimer-css.patch
 
 # Please note that widgets must also be listed in the run-time config.json to
 # be enabled.
-# ATTENTION: It seems bonkers to install `proxy-agent` and `vite` here, but
-# without them, the `add` operation fails with
-#     Invariant Violation: expected workspace package to exist for "proxy-agent"
-# or the equivalent error for "vite".
-RUN yarn workspace enketo-express add \
-    'proxy-agent@^6.5.0' \
-    'vite@^6.4.3' \
-    https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d \
-    https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981 \
+# ATTENTION: `yarn workspace enketo-express add <pkg>` (and plain `yarn add`)
+# triggers a long-standing Yarn Classic bug where the hoister crashes with
+#     Invariant Violation: expected workspace package to exist for "..."
+# (see https://github.com/yarnpkg/yarn/issues/7807). The workaround is to
+# skip the `add` command entirely: write the new dependencies directly into
+# enketo-express's package.json, then run a plain `yarn install`, which does
+# not hit the buggy code path.
+RUN node -e " \
+  const fs = require('fs'); \
+  const p = 'packages/enketo-express/package.json'; \
+  const c = JSON.parse(fs.readFileSync(p, 'utf8')); \
+  Object.assign(c.dependencies, { \
+    'enketo-image-customization-widget': 'https://github.com/kobotoolbox/enketo-image-customization-widget#c98179be9359013c7d918031a1031524577a634d', \
+    'enketo-literacy-test-widget': 'https://github.com/kobotoolbox/enketo-literacy-test-widget#28b91c54ace66631f627203bb5e3c2a7c4599981', \
+    'proxy-agent': '^6.5.0', \
+    'vite': '^6.4.3', \
+  }); \
+  fs.writeFileSync(p, JSON.stringify(c, null, 4) + '\n'); \
+" \
     && yarn install \
     && yarn workspace enketo-core install
 
